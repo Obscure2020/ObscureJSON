@@ -4,13 +4,13 @@ public class JSONbool implements JSONelement {
 
     private static final JSONbool cached_true = new JSONbool(true);
     private static final JSONbool cached_false = new JSONbool(false);
-    private static final String cached_true_str = "true";
-    private static final String cached_false_str = "false";
 
     private final boolean stored_value;
+    private final String cached_str;
 
     private JSONbool(boolean new_value){
         stored_value = new_value;
+        cached_str = stored_value ? "true" : "false";
     }
 
     public static JSONbool create(boolean value){
@@ -23,12 +23,11 @@ public class JSONbool implements JSONelement {
     }
 
     public String condensedPrint(){
-        if(stored_value) return cached_true_str;
-        return cached_false_str;
+        return cached_str;
     }
 
     public String prettyPrint(){
-        return condensedPrint();
+        return cached_str;
     }
 
     public boolean isObject(){
