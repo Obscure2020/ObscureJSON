@@ -1,6 +1,6 @@
 package ObscureJSON;
 
-public class JSONbool implements JSONelement {
+public final class JSONbool implements JSONelement {
 
     private static final JSONbool cached_true = new JSONbool(true);
     private static final JSONbool cached_false = new JSONbool(false);

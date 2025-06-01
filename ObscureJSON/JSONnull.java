@@ -1,6 +1,6 @@
 package ObscureJSON;
 
-public class JSONnull implements JSONelement {
+public final class JSONnull implements JSONelement {
 
     private static final JSONnull cached = new JSONnull();
     private static final String cached_str = "null";
