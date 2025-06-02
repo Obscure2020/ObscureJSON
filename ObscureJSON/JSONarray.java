@@ -14,8 +14,8 @@ public final class JSONarray implements JSONelement {
         return new JSONarray();
     }
 
-    //TODO: Item access, addition, insertion, and removal needed.
-    //TODO: removeAll. length.
+    //TODO: get, add, insert, remove.
+    //TODO: clear. length. isEmpty. replace.
 
     //TODO: Attempt to add "implements Iterable<JSONelement>".
 
