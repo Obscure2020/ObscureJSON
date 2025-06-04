@@ -15,8 +15,16 @@ class Main {
         return sb.toString();
     }
     public static void main(String[] args) throws Exception {
-        String test = readWholeFile(new File("TestData/MixedChars.txt"));
-        JSONstring test_json = JSONstring.create(test);
-        System.out.println(test_json.prettyPrint());
+        int[] tests = {182700, 100000};
+        for(int base : tests){
+            for(int i=0; i<30; i++){
+                double mult = Math.pow(10, -i);
+                double num = base * mult;
+                JSONnumber j_num = JSONnumber.create(num);
+                String print = j_num.prettyPrint();
+                double parse = Double.parseDouble(print);
+                System.out.println(num + " -> " + print + " -> " + parse);
+            }
+        }
     }
 }

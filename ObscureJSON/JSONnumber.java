@@ -22,12 +22,26 @@ public final class JSONnumber implements JSONelement {
         return stored_value;
     }
 
+    private String trimFloat(String numeric){
+        if(numeric.endsWith(".0")){
+            return numeric.substring(0, numeric.length()-2);
+        }
+        return numeric;
+    }
+
     public String condensedPrint(){
-        return Double.toString(stored_value);
+        String original = Double.toString(stored_value).toLowerCase();
+        int exp_sep = original.indexOf('e');
+        if(exp_sep >= 0){
+            String prefix = original.substring(0, exp_sep);
+            String suffix = original.substring(exp_sep);
+            return trimFloat(prefix) + suffix;
+        }
+        return trimFloat(original);
     }
 
     public String prettyPrint(){
-        return Double.toString(stored_value);
+        return condensedPrint();
     }
 
     public boolean isObject(){
