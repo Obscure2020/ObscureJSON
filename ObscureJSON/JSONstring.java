@@ -25,7 +25,7 @@ public final class JSONstring implements JSONelement {
         StringBuilder sb = new StringBuilder();
         for(int item : int_pieces){
             sb.append("\\u");
-            sb.append(ObscureLib.leftPad(Integer.toHexString(item).toUpperCase(), '0', 4));
+            sb.append(InternalUtils.leftPad(Integer.toHexString(item).toUpperCase(), '0', 4));
         }
         return sb.toString();
     }
