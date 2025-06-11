@@ -1,8 +1,12 @@
 package ObscureJSON;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ListIterator;
 
-public final class JSONarray implements JSONelement {
+public final class JSONarray implements JSONelement, List<JSONelement> {
 
     private final ArrayList<JSONelement> contents;
 
@@ -94,40 +98,98 @@ public final class JSONarray implements JSONelement {
         return false;
     }
 
-    //Usability Methods
+    //The methods below all go toward implementing List<JSONelement>.
 
-    public JSONelement get(int index){
-        return contents.get(index);
+    public void add(int index, JSONelement element){
+        contents.add(index, element);
     }
 
-    public void add(JSONelement item){
-        contents.add(item);
+    public boolean add(JSONelement e){
+        return contents.add(e);
     }
 
-    public void insert(JSONelement item, int index){
-        contents.add(index, item);
+    public boolean addAll(int index, Collection<? extends JSONelement> c){
+        return contents.addAll(index, c);
     }
 
-    public void replace(JSONelement item, int index){
-        contents.set(index, item);
-    }
-
-    public void remove(int index){
-        contents.remove(index);
+    public boolean addAll(Collection<? extends JSONelement> c){
+        return contents.addAll(c);
     }
 
     public void clear(){
         contents.clear();
     }
 
-    public int length(){
-        return contents.size();
+    public boolean contains(Object o){
+        return contents.contains(o);
+    }
+
+    public boolean containsAll(Collection<?> c){
+        return contents.containsAll(c);
+    }
+
+    public JSONelement get(int index){
+        return contents.get(index);
+    }
+
+    public int indexOf(Object o){
+        return contents.indexOf(o);
     }
 
     public boolean isEmpty(){
         return contents.isEmpty();
     }
 
-    //TODO: Attempt to add "implements Iterable<JSONelement>".
+    public Iterator<JSONelement> iterator(){
+        return contents.iterator();
+    }
+
+    public int lastIndexOf(Object o){
+        return contents.lastIndexOf(o);
+    }
+
+    public ListIterator<JSONelement> listIterator(){
+        return contents.listIterator();
+    }
+
+    public ListIterator<JSONelement> listIterator(int index){
+        return contents.listIterator(index);
+    }
+
+    public JSONelement remove(int index){
+        return contents.remove(index);
+    }
+
+    public boolean remove(Object o){
+        return contents.remove(o);
+    }
+
+    public boolean removeAll(Collection<?> c){
+        return contents.removeAll(c);
+    }
+
+    public boolean retainAll(Collection<?> c){
+        return contents.retainAll(c);
+    }
+
+    public JSONelement set(int index, JSONelement element){
+        return contents.set(index, element);
+    }
+
+    public int size(){
+        return contents.size();
+    }
+
+    public List<JSONelement> subList(int fromIndex, int toIndex){
+        return contents.subList(fromIndex, toIndex);
+    }
+
+    public Object[] toArray(){
+        return contents.toArray();
+    }
+
+    public <T> T[] toArray(T[] a){
+        return contents.toArray(a);
+    }
 
 }

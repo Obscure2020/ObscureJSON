@@ -78,5 +78,12 @@ class Main {
         System.out.println(uber_arr.condensedPrint());
         System.out.println();
         System.out.println(uber_arr.prettyPrint());
+        System.out.println();
+
+        System.out.println("============================");
+        System.out.println();
+        for(JSONelement item : arr){
+            System.out.println(item.condensedPrint());
+        }
     }
 }
