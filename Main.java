@@ -15,75 +15,44 @@ class Main {
         return sb.toString();
     }
 
-    private static JSONstring prep_str(String prefix, String body){
-        return JSONstring.create(prefix + body);
+    private static void properPrint(String message){
+        String[] lines = message.split("\n");
+        for(String l : lines) System.out.println(l);
     }
 
     public static void main(String[] args) throws Exception {
-        String short_str = " wheels on the bus...";
-        String long_str = " wheels on the bus go round and round";
+        JSONobject obj = JSONobject.create();
 
-        System.out.println("============================");
-        System.out.println();
-        JSONarray arr = JSONarray.create();
-        for(int i=1; i<=10; i++){
-            arr.add(JSONnumber.create((double) i));
-        }
-        System.out.println(arr.condensedPrint());
-        System.out.println();
-        System.out.println(arr.prettyPrint());
-        System.out.println();
+        JSONobject widget = JSONobject.create();
+        obj.put("widget", widget);
+        widget.put("debug", JSONstring.create("on"));
 
-        System.out.println("============================");
-        System.out.println();
-        JSONarray uber_arr = JSONarray.create();
-        for(int i=0; i<6; i++){
-            uber_arr.add(arr);
-        }
-        System.out.println(uber_arr.condensedPrint());
-        System.out.println();
-        System.out.println(uber_arr.prettyPrint());
-        System.out.println();
+        JSONobject window = JSONobject.create();
+        widget.put("window", window);
+        window.put("title", JSONstring.create("Sample Konfabulator Widget"));
+        window.put("name", JSONstring.create("main_window"));
+        window.put("width", JSONnumber.create(500));
+        window.put("height", JSONnumber.create(500));
 
-        System.out.println("============================");
-        System.out.println();
-        arr.clear();
-        arr.add(prep_str("One", short_str));
-        arr.add(prep_str("Two", short_str));
-        arr.add(prep_str("Three", short_str));
-        arr.add(prep_str("Four", short_str));
-        System.out.println(arr.condensedPrint());
-        System.out.println();
-        System.out.println(arr.prettyPrint());
-        System.out.println();
+        JSONobject image = JSONobject.create();
+        widget.put("image", image);
+        image.put("src", JSONstring.create("Images/Sun.png"));
+        image.put("name", JSONstring.create("sun1"));
+        image.put("hOffset", JSONnumber.create(250));
+        image.put("vOffset", JSONnumber.create(250));
+        image.put("alignment", JSONstring.create("center"));
 
-        System.out.println("============================");
-        System.out.println();
-        arr.clear();
-        arr.add(prep_str("One", long_str));
-        arr.add(prep_str("Two", long_str));
-        arr.add(prep_str("Three", long_str));
-        arr.add(prep_str("Four", long_str));
-        System.out.println(arr.condensedPrint());
-        System.out.println();
-        System.out.println(arr.prettyPrint());
-        System.out.println();
+        JSONobject text = JSONobject.create();
+        widget.put("text", text);
+        text.put("data", JSONstring.create("Click Here"));
+        text.put("size", JSONnumber.create(36));
+        text.put("style", JSONstring.create("bold"));
+        text.put("name", JSONstring.create("text1"));
+        text.put("hOffset", JSONnumber.create(250));
+        text.put("vOffset", JSONnumber.create(100));
+        text.put("alignment", JSONstring.create("center"));
+        text.put("onMouseUp", JSONstring.create("sun1.opacity = (sun1.opacity / 100) * 90;"));
 
-        System.out.println("============================");
-        System.out.println();
-        uber_arr.clear();
-        for(int i=0; i<6; i++){
-            uber_arr.add(arr);
-        }
-        System.out.println(uber_arr.condensedPrint());
-        System.out.println();
-        System.out.println(uber_arr.prettyPrint());
-        System.out.println();
-
-        System.out.println("============================");
-        System.out.println();
-        for(JSONelement item : arr){
-            System.out.println(item.condensedPrint());
-        }
+        properPrint(obj.prettyPrint());
     }
 }

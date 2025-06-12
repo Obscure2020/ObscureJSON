@@ -16,50 +16,12 @@ public final class JSONstring implements JSONelement {
         return stored_value;
     }
 
-    private String hexEscape(int codepoint){
-        char[] pieces = Character.toChars(codepoint);
-        int[] int_pieces = new int[pieces.length];
-        for(int i=0; i<pieces.length; i++){
-            int_pieces[i] = (int) pieces[i];
-        }
-        StringBuilder sb = new StringBuilder();
-        for(int item : int_pieces){
-            sb.append("\\u");
-            sb.append(InternalUtils.leftPad(Integer.toHexString(item).toUpperCase(), '0', 4));
-        }
-        return sb.toString();
-    }
-
-    private String escapeCodepoint(int codepoint){
-        return switch(codepoint){
-            case 34 -> "\\\"";
-            case 92 -> "\\\\";
-            case 8 -> "\\b";
-            case 12 -> "\\f";
-            case 10 -> "\\n";
-            case 13 -> "\\r";
-            case 9 -> "\\t";
-            default -> hexEscape(codepoint);
-        };
-    }
-
     public String condensedPrint(){
-        final int[] codepoints = stored_value.codePoints().toArray();
-        StringBuilder sb = new StringBuilder();
-        sb.append('"');
-        for(int c : codepoints){
-            if((c < 20) || (c > 126) || (c == 34) || (c == 92)){
-                sb.append(escapeCodepoint(c));
-            } else {
-                sb.appendCodePoint(c);
-            }
-        }
-        sb.append('"');
-        return sb.toString();
+        return InternalUtils.JSONstringLiteral(stored_value);
     }
 
     public String prettyPrint(){
-        return condensedPrint();
+        return InternalUtils.JSONstringLiteral(stored_value);
     }
 
     public boolean isObject(){
