@@ -48,4 +48,13 @@ public final class JSONstring implements JSONelement {
         return false;
     }
 
+    @Override
+    public boolean equals(Object other){
+        if(!(other instanceof JSONelement)) return false;
+        JSONelement j_other = (JSONelement) other;
+        if(!j_other.isString()) return false;
+        JSONstring s_other = (JSONstring) other;
+        return stored_value.equals(s_other.stored_value);
+    }
+
 }

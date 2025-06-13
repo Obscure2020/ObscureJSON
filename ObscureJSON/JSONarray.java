@@ -98,6 +98,15 @@ public final class JSONarray implements JSONelement, List<JSONelement> {
         return false;
     }
 
+    @Override
+    public boolean equals(Object other){
+        if(!(other instanceof JSONelement)) return false;
+        JSONelement j_other = (JSONelement) other;
+        if(!j_other.isArray()) return false;
+        JSONarray a_other = (JSONarray) other;
+        return contents.equals(a_other.contents);
+    }
+
     //The methods below all go toward implementing List<JSONelement>.
 
     public void add(int index, JSONelement element){

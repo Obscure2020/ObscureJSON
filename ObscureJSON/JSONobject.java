@@ -75,6 +75,15 @@ public final class JSONobject implements JSONelement, Map<String, JSONelement> {
         return false;
     }
 
+    @Override
+    public boolean equals(Object other){
+        if(!(other instanceof JSONelement)) return false;
+        JSONelement j_other = (JSONelement) other;
+        if(!j_other.isObject()) return false;
+        JSONobject o_other = (JSONobject) other;
+        return contents.equals(o_other.contents);
+    }
+
     //The methods below all go toward implementing Map<String, JSONelement>.
 
     public void clear(){

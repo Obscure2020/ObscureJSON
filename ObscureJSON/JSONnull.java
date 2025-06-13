@@ -44,4 +44,11 @@ public final class JSONnull implements JSONelement {
         return true;
     }
 
+    @Override
+    public boolean equals(Object other){
+        if(!(other instanceof JSONelement)) return false;
+        JSONelement j_other = (JSONelement) other;
+        return j_other.isNull();
+    }
+
 }

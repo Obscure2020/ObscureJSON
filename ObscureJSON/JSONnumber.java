@@ -68,4 +68,13 @@ public final class JSONnumber implements JSONelement {
         return false;
     }
 
+    @Override
+    public boolean equals(Object other){
+        if(!(other instanceof JSONelement)) return false;
+        JSONelement j_other = (JSONelement) other;
+        if(!j_other.isNumber()) return false;
+        JSONnumber n_other = (JSONnumber) other;
+        return stored_value == n_other.stored_value;
+    }
+
 }

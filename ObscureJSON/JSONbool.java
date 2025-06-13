@@ -54,4 +54,13 @@ public final class JSONbool implements JSONelement {
         return false;
     }
 
+    @Override
+    public boolean equals(Object other){
+        if(!(other instanceof JSONelement)) return false;
+        JSONelement j_other = (JSONelement) other;
+        if(!j_other.isBool()) return false;
+        JSONbool b_other = (JSONbool) other;
+        return stored_value == b_other.stored_value;
+    }
+
 }
