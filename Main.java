@@ -1,17 +1,20 @@
-import java.io.*;
+import java.nio.file.*;
+import java.nio.charset.StandardCharsets;
+import java.io.IOException;
 import java.util.*;
 import ObscureJSON.*;
 
 class Main {
-    private static String readWholeFile(File input) throws FileNotFoundException{
-        Scanner scan = new Scanner(input);
+    private static String readWholeFile(Path input) throws IOException{
+        List<String> lines = Files.readAllLines(input, StandardCharsets.UTF_8);
         StringBuilder sb = new StringBuilder();
-        if(scan.hasNext()) sb.append(scan.nextLine());
-        while(scan.hasNext()){
-            sb.append('\n');
-            sb.append(scan.nextLine());
+        if(!lines.isEmpty()) sb.append(lines.getFirst());
+        if(lines.size() > 1){
+            for(String s : lines.subList(1, lines.size())){
+                sb.append('\n');
+                sb.append(s);
+            }
         }
-        scan.close();
         return sb.toString();
     }
 
@@ -21,38 +24,13 @@ class Main {
     }
 
     public static void main(String[] args) throws Exception {
-        JSONobject obj = JSONobject.create();
-
-        JSONobject widget = JSONobject.create();
-        obj.put("widget", widget);
-        widget.put("debug", JSONstring.create("on"));
-
-        JSONobject window = JSONobject.create();
-        widget.put("window", window);
-        window.put("title", JSONstring.create("Sample Konfabulator Widget"));
-        window.put("name", JSONstring.create("main_window"));
-        window.put("width", JSONnumber.create(500));
-        window.put("height", JSONnumber.create(500));
-
-        JSONobject image = JSONobject.create();
-        widget.put("image", image);
-        image.put("src", JSONstring.create("Images/Sun.png"));
-        image.put("name", JSONstring.create("sun1"));
-        image.put("hOffset", JSONnumber.create(250));
-        image.put("vOffset", JSONnumber.create(250));
-        image.put("alignment", JSONstring.create("center"));
-
-        JSONobject text = JSONobject.create();
-        widget.put("text", text);
-        text.put("data", JSONstring.create("Click Here"));
-        text.put("size", JSONnumber.create(36));
-        text.put("style", JSONstring.create("bold"));
-        text.put("name", JSONstring.create("text1"));
-        text.put("hOffset", JSONnumber.create(250));
-        text.put("vOffset", JSONnumber.create(100));
-        text.put("alignment", JSONstring.create("center"));
-        text.put("onMouseUp", JSONstring.create("sun1.opacity = (sun1.opacity / 100) * 90;"));
-
-        properPrint(obj.prettyPrint());
+        String document = readWholeFile(Paths.get("TestData/Sample001.txt"));
+        JSONelement elem = JSONdecode.document(document);
+        if(!elem.isObject()){
+            System.out.println("Something went wrong.");
+            System.out.println("We were expecting to see a JSON \"object\" inside the file.");
+            System.exit(1);
+        }
+        properPrint(elem.prettyPrint());
     }
 }
