@@ -32,5 +32,9 @@ class Main {
             System.exit(1);
         }
         properPrint(elem.prettyPrint());
+
+        System.out.println();
+        JSONstring str = JSONstring.create(readWholeFile(Paths.get("TestData/MixedChars.txt")));
+        System.out.println(str.prettyPrint());
     }
 }
