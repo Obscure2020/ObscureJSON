@@ -16,11 +16,10 @@ public class JSONdecode {
                 throw new JSONstandardsException("Was expecting a document that was not entirely composed of whitespace.");
             }
         }
-        boolean mode = chars[0] == 34;
+        boolean mode = false;
         StringBuilder sb = new StringBuilder();
-        if(!mode) sb.appendCodePoint(chars[0]);
         int prev = -1;
-        for(int i=1; i<chars.length; i++){
+        for(int i=0; i<chars.length; i++){
             int c = chars[i];
             if(mode){
                 //Inside a String
