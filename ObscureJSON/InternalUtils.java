@@ -48,16 +48,15 @@ final class InternalUtils {
     }
 
     public static String JSONstringLiteral(String text){
-        final int[] codepoints = text.codePoints().toArray();
         StringBuilder sb = new StringBuilder();
         sb.append('"');
-        for(int c : codepoints){
+        text.codePoints().forEachOrdered(c -> {
             if((c < 20) || (c > 126) || (c == 34) || (c == 92)){
                 sb.append(escapeCodepoint(c));
             } else {
                 sb.appendCodePoint(c);
             }
-        }
+        });
         sb.append('"');
         return sb.toString();
     }
