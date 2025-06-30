@@ -24,7 +24,7 @@ class Main {
     }
 
     public static void main(String[] args) throws Exception {
-        String document = readWholeFile(Paths.get("TestData/Sample001.txt"));
+        String document = readWholeFile(Paths.get("TestData/Sample002.txt")); //Also tested with Sample003.txt
         JSONelement elem = JSONdecode.document(document);
         if(!elem.isObject()){
             System.out.println("Something went wrong.");
@@ -32,9 +32,5 @@ class Main {
             System.exit(1);
         }
         properPrint(elem.prettyPrint());
-
-        System.out.println();
-        JSONstring str = JSONstring.create(readWholeFile(Paths.get("TestData/MixedChars.txt")));
-        System.out.println(str.prettyPrint());
     }
 }

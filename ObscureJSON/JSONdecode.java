@@ -6,6 +6,41 @@ import java.util.Collections;
 
 public class JSONdecode {
 
+    private static void stringPositionException(String body, int position, String reason) throws JSONstandardsException{
+        int[] codepoints = body.codePoints().toArray();
+        ArrayList<Integer> leftPartList = new ArrayList<>();
+        int limit = Math.max(position - 40, 0);
+        for(int i=position-1; i>=limit; i--){
+            int codepoint = codepoints[i];
+            if((codepoint == '\n') || (codepoint == '\r')) break;
+            leftPartList.add(codepoint);
+        }
+        Collections.reverse(leftPartList);
+        StringBuilder leftPart = new StringBuilder();
+        if(limit != 0) leftPart.append("...");
+        for(int c : leftPartList) leftPart.appendCodePoint(c);
+        String markerPadding = "-".repeat((int) leftPart.codePoints().count());
+        String centerPart = Character.toString(codepoints[position]);
+        limit = Math.min(position + 40, codepoints.length - 1);
+        StringBuilder rightPart = new StringBuilder();
+        for(int i=position+1; i<=limit; i++){
+            int codepoint = codepoints[i];
+            if((codepoint == '\n') || (codepoint == '\r')) break;
+            rightPart.appendCodePoint(codepoint);
+        }
+        if(limit != (codepoints.length - 1)) rightPart.append("...");
+        //And for our grand finale, putting all the parts together:
+        StringBuilder result = new StringBuilder(reason);
+        result.append("\n\n      ");
+        result.append(leftPart);
+        result.append(centerPart);
+        result.append(rightPart);
+        result.append("\nHERE: ");
+        result.append(markerPadding);
+        result.append("^\n");
+        throw new JSONstandardsException(result.toString());
+    }
+
     private static List<TaggedString> chunkify(String document) throws JSONstandardsException {
         ArrayList<TaggedString> bareChunks = new ArrayList<>();
         int[] chars = document.strip().codePoints().toArray();
@@ -33,8 +68,7 @@ public class JSONdecode {
             } else {
                 //Outside a String
                 if(c == 92){
-                    throw new JSONstandardsException("Illegal usage of the escape character \"\\\" outside of a string.");
-                    //TODO: Show where this error occurs visually.
+                    stringPositionException(document, i, "Illegal usage of the escape character \"\\\" outside of a string.");
                 } else if(c == 34){
                     mode = true;
                     bareChunks.add(new TaggedString(sb.toString(), false));
@@ -45,10 +79,7 @@ public class JSONdecode {
             }
             prev = c;
         }
-        if(mode){
-            throw new JSONstandardsException("Document ended while still inside a yet-to-terminate string.");
-            //TODO: Show where this error occurs visually.
-        }
+        if(mode) stringPositionException(document, chars.length-1, "Document ended while still inside a yet-to-terminate string.");
         bareChunks.add(new TaggedString(sb.toString(), mode));
         ArrayList<TaggedString> processedChunks = new ArrayList<>(bareChunks.size());
         for(TaggedString item : bareChunks){
