@@ -32,13 +32,18 @@ public class JSONdecode {
         if(limit != (document.length - 1)) rightPart.append("...");
         //And for our grand finale, putting all the parts together:
         StringBuilder result = new StringBuilder(reason);
-        result.append("\n\n      ");
+        String lineSep = System.lineSeparator();
+        result.append(lineSep);
+        result.append(lineSep);
+        result.append("      ");
         result.append(leftPart);
         result.append(centerPart);
         result.append(rightPart);
-        result.append("\nHERE: ");
+        result.append(lineSep);
+        result.append("HERE: ");
         result.append(markerPadding);
-        result.append("^\n");
+        result.append('^');
+        result.append(lineSep);
         throw new JSONstandardsException(result.toString());
     }
 
@@ -81,14 +86,18 @@ public class JSONdecode {
         if((index < chunks.size()) || (rightGrowth > ERR_CONTEXT)) rightPart.append("...");
         //Once again, it is now time to assemble everything together.
         StringBuilder result = new StringBuilder(reason);
-        result.append("\n\n      ");
+        String lineSep = System.lineSeparator();
+        result.append(lineSep);
+        result.append(lineSep);
+        result.append("      ");
         result.append(leftPart);
         result.append(centerPart);
         result.append(rightPart);
-        result.append("\nHERE: ");
+        result.append(lineSep);
+        result.append("HERE: ");
         result.append(markerPadding);
         result.append(marker);
-        result.append('\n');
+        result.append(lineSep);
         throw new JSONstandardsException(result.toString());
     }
 
