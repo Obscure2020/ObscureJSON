@@ -6,9 +6,11 @@ import java.util.Collections;
 
 public class JSONdecode {
 
-    private static void codepointPositionException(int[] document, int position, String reason) throws JSONstandardsException{
+    private static final int ERR_CONTEXT = 40;
+
+    private static void codepointPositionException(int[] document, int position, String reason) throws JSONstandardsException {
         ArrayList<Integer> leftPartList = new ArrayList<>();
-        int limit = Math.max(position - 40, 0);
+        int limit = Math.max(position - ERR_CONTEXT, 0);
         for(int i=position-1; i>=limit; i--){
             int codepoint = document[i];
             if((codepoint == '\n') || (codepoint == '\r')) break;
@@ -20,7 +22,7 @@ public class JSONdecode {
         for(int c : leftPartList) leftPart.appendCodePoint(c);
         String markerPadding = "-".repeat((int) leftPart.codePoints().count());
         String centerPart = Character.toString(document[position]);
-        limit = Math.min(position + 40, document.length - 1);
+        limit = Math.min(position + ERR_CONTEXT, document.length - 1);
         StringBuilder rightPart = new StringBuilder();
         for(int i=position+1; i<=limit; i++){
             int codepoint = document[i];
@@ -37,6 +39,56 @@ public class JSONdecode {
         result.append("\nHERE: ");
         result.append(markerPadding);
         result.append("^\n");
+        throw new JSONstandardsException(result.toString());
+    }
+
+    private static String reprint(TaggedString ts){
+        if(ts.check){
+            return '"' + ts.text + '"';
+        }
+        return ts.text;
+    }
+
+    private static void chunkException(List<TaggedString> chunks, int position, String reason) throws JSONstandardsException {
+        ArrayList<Integer> partList = new ArrayList<>();
+        int index = position - 1;
+        while(partList.size() < ERR_CONTEXT){
+            if(index < 0) break;
+            int[] codepoints = reprint(chunks.get(index)).codePoints().toArray();
+            for(int i=codepoints.length-1; i>=0; i--) partList.add(codepoints[i]);
+            index--;
+        }
+        int leftGrowth = partList.size();
+        while(partList.size() > ERR_CONTEXT) partList.removeLast();
+        Collections.reverse(partList);
+        StringBuilder leftPart = new StringBuilder();
+        if((index >= 0) || (leftGrowth > ERR_CONTEXT)) leftPart.append("...");
+        for(int c : partList) leftPart.appendCodePoint(c);
+        String markerPadding = "-".repeat((int) leftPart.codePoints().count());
+        String centerPart = reprint(chunks.get(position));
+        String marker = "^".repeat((int) centerPart.codePoints().count());
+        partList.clear();
+        index = position + 1;
+        while(partList.size() < ERR_CONTEXT){
+            if(index >= chunks.size()) break;
+            reprint(chunks.get(index)).codePoints().forEachOrdered(partList::add);
+            index++;
+        }
+        int rightGrowth = partList.size();
+        while(partList.size() > ERR_CONTEXT) partList.removeLast();
+        StringBuilder rightPart = new StringBuilder();
+        for(int c : partList) rightPart.appendCodePoint(c);
+        if((index < chunks.size()) || (rightGrowth > ERR_CONTEXT)) rightPart.append("...");
+        //Once again, it is now time to assemble everything together.
+        StringBuilder result = new StringBuilder(reason);
+        result.append("\n\n      ");
+        result.append(leftPart);
+        result.append(centerPart);
+        result.append(rightPart);
+        result.append("\nHERE: ");
+        result.append(markerPadding);
+        result.append(marker);
+        result.append('\n');
         throw new JSONstandardsException(result.toString());
     }
 
