@@ -14,7 +14,7 @@ public class JSONdecode {
         for(int i=position-1; i>=limit; i--){
             int codepoint = document[i];
             if((codepoint == '\n') || (codepoint == '\r')) break;
-            leftPartList.add(codepoint);
+            if(codepoint != '\t') leftPartList.add(codepoint);
         }
         Collections.reverse(leftPartList);
         StringBuilder leftPart = new StringBuilder();
@@ -27,10 +27,9 @@ public class JSONdecode {
         for(int i=position+1; i<=limit; i++){
             int codepoint = document[i];
             if((codepoint == '\n') || (codepoint == '\r')) break;
-            rightPart.appendCodePoint(codepoint);
+            if(codepoint != '\t') rightPart.appendCodePoint(codepoint);
         }
         if(limit != (document.length - 1)) rightPart.append("...");
-        //And for our grand finale, putting all the parts together:
         StringBuilder result = new StringBuilder(reason);
         String lineSep = System.lineSeparator();
         result.append(lineSep);
@@ -39,6 +38,33 @@ public class JSONdecode {
         result.append(leftPart);
         result.append(centerPart);
         result.append(rightPart);
+        result.append(lineSep);
+        result.append("HERE: ");
+        result.append(markerPadding);
+        result.append('^');
+        result.append(lineSep);
+        throw new JSONstandardsException(result.toString());
+    }
+
+    private static void codepointEndingException(int[] document, String reason) throws JSONstandardsException {
+        ArrayList<Integer> excerptList = new ArrayList<>();
+        int limit = Math.max(document.length - 1 - ERR_CONTEXT, 0);
+        for(int i=document.length-1; i>=limit; i--){
+            int codepoint = document[i];
+            if((codepoint == '\n') || (codepoint == '\r')) break;
+            if(codepoint != '\t') excerptList.add(codepoint);
+        }
+        Collections.reverse(excerptList);
+        StringBuilder excerpt = new StringBuilder();
+        if(limit != 0) excerpt.append("...");
+        for(int c : excerptList) excerpt.appendCodePoint(c);
+        String markerPadding = "-".repeat((int) excerpt.codePoints().count());
+        StringBuilder result = new StringBuilder(reason);
+        String lineSep = System.lineSeparator();
+        result.append(lineSep);
+        result.append(lineSep);
+        result.append("      ");
+        result.append(excerpt);
         result.append(lineSep);
         result.append("HERE: ");
         result.append(markerPadding);
@@ -84,7 +110,6 @@ public class JSONdecode {
         StringBuilder rightPart = new StringBuilder();
         for(int c : partList) rightPart.appendCodePoint(c);
         if((index < chunks.size()) || (rightGrowth > ERR_CONTEXT)) rightPart.append("...");
-        //Once again, it is now time to assemble everything together.
         StringBuilder result = new StringBuilder(reason);
         String lineSep = System.lineSeparator();
         result.append(lineSep);
@@ -97,6 +122,36 @@ public class JSONdecode {
         result.append("HERE: ");
         result.append(markerPadding);
         result.append(marker);
+        result.append(lineSep);
+        throw new JSONstandardsException(result.toString());
+    }
+
+    private static void chunkEndingException(List<TaggedString> chunks, String reason) throws JSONstandardsException {
+        ArrayList<Integer> partList = new ArrayList<>();
+        int index = chunks.size() - 1;
+        while(partList.size() < ERR_CONTEXT){
+            if(index < 0) break;
+            int[] codepoints = reprint(chunks.get(index)).codePoints().toArray();
+            for(int i=codepoints.length-1; i>=0; i--) partList.add(codepoints[i]);
+            index--;
+        }
+        int growth = partList.size();
+        while(partList.size() > ERR_CONTEXT) partList.removeLast();
+        Collections.reverse(partList);
+        StringBuilder excerpt = new StringBuilder();
+        if((index >= 0) || (growth > ERR_CONTEXT)) excerpt.append("...");
+        for(int c : partList) excerpt.appendCodePoint(c);
+        String markerPadding = "-".repeat((int) excerpt.codePoints().count());
+        StringBuilder result = new StringBuilder(reason);
+        String lineSep = System.lineSeparator();
+        result.append(lineSep);
+        result.append(lineSep);
+        result.append("      ");
+        result.append(excerpt);
+        result.append(lineSep);
+        result.append("HERE: ");
+        result.append(markerPadding);
+        result.append('^');
         result.append(lineSep);
         throw new JSONstandardsException(result.toString());
     }
@@ -139,7 +194,7 @@ public class JSONdecode {
             }
             prev = c;
         }
-        if(mode) codepointPositionException(chars, chars.length-1, "Document ended while still inside a yet-to-terminate string.");
+        if(mode) codepointEndingException(chars, "Document ended while still inside a yet-to-terminate string.");
         bareChunks.add(new TaggedString(sb.toString(), mode));
         ArrayList<TaggedString> processedChunks = new ArrayList<>(bareChunks.size());
         for(TaggedString item : bareChunks){
