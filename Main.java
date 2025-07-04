@@ -24,7 +24,7 @@ class Main {
     }
 
     public static void main(String[] args) throws Exception {
-        String document = readWholeFile(Paths.get("TestData/Sample001.txt"));
+        String document = readWholeFile(Paths.get("TestData/Sample004.txt"));
         JSONelement elem = JSONdecode.document(document);
         if(!elem.isObject()){
             System.out.println("Something went wrong.");

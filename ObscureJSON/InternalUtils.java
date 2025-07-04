@@ -1,10 +1,18 @@
 package ObscureJSON;
 
+import java.util.Arrays;
 import java.util.HexFormat;
 
 final class InternalUtils {
 
     private static HexFormat hex = HexFormat.of().withUpperCase();
+
+    public static boolean matchesAlphabet(String message, String alphabet){
+        if(message.length() == 0) return true;
+        if(alphabet.length() == 0) return false;
+        int[] alphabet_codepoints = alphabet.codePoints().sorted().distinct().toArray();
+        return message.codePoints().sorted().distinct().allMatch(i -> (Arrays.binarySearch(alphabet_codepoints, i) >= 0));
+    }
 
     public static String indentLines(String text){
         String indent = "    ";

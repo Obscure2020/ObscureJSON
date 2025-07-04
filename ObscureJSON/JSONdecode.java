@@ -1,8 +1,11 @@
 package ObscureJSON;
 
 import java.util.List;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumMap;
+import java.util.HexFormat;
 
 public class JSONdecode {
 
@@ -124,6 +127,7 @@ public class JSONdecode {
         result.append(marker);
         result.append(lineSep);
         throw new JSONstandardsException(result.toString());
+        //TODO: Fix the "really long centerPart" potential issue.
     }
 
     private static void chunkEndingException(List<TaggedString> chunks, String reason) throws JSONstandardsException {
@@ -212,12 +216,318 @@ public class JSONdecode {
         return Collections.unmodifiableList(processedChunks);
     }
 
+    private static String unescape(String original) throws JSONstandardsException {
+        StringBuilder result = new StringBuilder();
+        StringBuilder temp = new StringBuilder();
+        int[] codepoints = original.codePoints().toArray();
+        int len = codepoints.length;
+        int i=0;
+        while(i < len){
+            int c = codepoints[i];
+            if(c == '\\'){
+                if(i+1 >= len) codepointEndingException(codepoints, "We were expecting an escape signifier here.");
+                int escape_signifier = codepoints[i+1];
+                if(escape_signifier == 'u'){
+                    temp.setLength(0);
+                    if(i+2 >= len) codepointEndingException(codepoints, "We were expecting the first character of a Unicode hexadecimal specifier here.");
+                    temp.appendCodePoint(codepoints[i+2]);
+                    if(i+3 >= len) codepointEndingException(codepoints, "We were expecting the second character of a Unicode hexadecimal specifier here.");
+                    temp.appendCodePoint(codepoints[i+3]);
+                    if(i+4 >= len) codepointEndingException(codepoints, "We were expecting the third character of a Unicode hexadecimal specifier here.");
+                    temp.appendCodePoint(codepoints[i+4]);
+                    if(i+5 >= len) codepointEndingException(codepoints, "We were expecting the fourth character of a Unicode hexadecimal specifier here.");
+                    temp.appendCodePoint(codepoints[i+5]);
+                    String hex = temp.toString();
+                    if(!InternalUtils.matchesAlphabet(hex, "0123456789abcdefABCDEF")) codepointPositionException(codepoints, i+2, "We were expecting the four-character piece that begins here to contain only hexadecimal characters.");
+                    result.append((char) HexFormat.fromHexDigits(hex));
+                    i += 6;
+                } else {
+                    switch(escape_signifier){
+                        case '"' -> result.append('"');
+                        case '\\' -> result.append('\\');
+                        case '/' -> result.append('/');
+                        case 'b' -> result.append('\b');
+                        case 'f' -> result.append('\f');
+                        case 'n' -> result.append('\n');
+                        case 'r' -> result.append('\r');
+                        case 't' -> result.append('\t');
+                        default -> {
+                            temp.setLength(0);
+                            temp.append("The escape sequence \"\\");
+                            temp.appendCodePoint(escape_signifier);
+                            temp.append("\" is not recognized by JSON standards.");
+                            codepointPositionException(codepoints, i+1, temp.toString());
+                        }
+                    }
+                    i += 2;
+                }
+            } else {
+                result.appendCodePoint(c);
+                i++;
+            }
+        }
+        return result.toString();
+    }
+
+    private enum State {
+        EXPECT_GLOBAL,
+        EXPECT_ITEM_OR_ARR_END,
+        EXPECT_COMMA_OR_ARR_END,
+        EXPECT_ARR_ITEM,
+        EXPECT_KEY_OR_OBJ_END,
+        EXPECT_COLON,
+        EXPECT_OBJ_VAL,
+        EXPECT_COMMA_OR_OBJ_END,
+        EXPECT_OBJ_KEY;
+    }
+
+    private static EnumMap<State, String> setupExpectationMessages(){
+        EnumMap<State, String> result = new EnumMap<>(State.class);
+        result.put(State.EXPECT_GLOBAL, "We were expecting to see... anything... here.");
+        result.put(State.EXPECT_ITEM_OR_ARR_END, "We were expecting to see an array item or the end of the array here.");
+        result.put(State.EXPECT_COMMA_OR_ARR_END, "We were expecting to see a comma or the end of the array here.");
+        result.put(State.EXPECT_ARR_ITEM, "We were expecting to see an array item here.");
+        result.put(State.EXPECT_KEY_OR_OBJ_END, "We were expecting to see an object member key or the end of the object here.");
+        result.put(State.EXPECT_COLON, "We were expecting to see a colon here.");
+        result.put(State.EXPECT_OBJ_VAL, "We were expecting to see an object member value here.");
+        result.put(State.EXPECT_COMMA_OR_OBJ_END, "We were expecting to see a comma or the end of the object here.");
+        result.put(State.EXPECT_OBJ_KEY, "We were expecting to see an object member key here.");
+        return result;
+    }
+
+    private static final EnumMap<State, String> expectationMessages = setupExpectationMessages();
+    private static final String cantTellWhat = "We can't tell what JSON type this is is supposed to be. What the heck is this??";
+
     public static JSONelement document(String d) throws JSONstandardsException {
         List<TaggedString> chunks = chunkify(d);
-        for(TaggedString item : chunks){
-            System.out.println(item.check + " -> " + item.text);
+        ArrayDeque<State> stateStack = new ArrayDeque<>();
+        stateStack.addLast(State.EXPECT_GLOBAL);
+        JSONelement globalElement = null;
+        ArrayDeque<JSONelement> containerStack = new ArrayDeque<>();
+        String lastObjKey = null;
+        for(int i=0; i<chunks.size(); i++){
+            if(stateStack.isEmpty()) chunkException(chunks, i, "We were not expecting to find any more data here, as the document seemed to have already concluded.");
+            TaggedString chunk = chunks.get(i);
+            String text = chunk.text;
+            boolean check = chunk.check;
+            State state = stateStack.removeLast();
+            switch(state){
+                case EXPECT_GLOBAL -> {
+                    if(check){
+                        globalElement = JSONstring.create(unescape(text));
+                    } else if(text.equals("[")){
+                        globalElement = JSONarray.create();
+                        containerStack.addLast(globalElement);
+                        stateStack.addLast(State.EXPECT_ITEM_OR_ARR_END);
+                    } else if(text.equals("{")){
+                        globalElement = JSONobject.create();
+                        containerStack.addLast(globalElement);
+                        stateStack.addLast(State.EXPECT_KEY_OR_OBJ_END);
+                    } else if(text.equals("null")){
+                        globalElement = JSONnull.create();
+                    } else if(text.equals("true")){
+                        globalElement = JSONbool.create(true);
+                    } else if(text.equals("false")){
+                        globalElement = JSONbool.create(false);
+                    } else {
+                        double result = 0;
+                        try{
+                            result = Double.parseDouble(text);
+                        } catch(NumberFormatException e) {
+                            chunkException(chunks, i, cantTellWhat);
+                        }
+                        globalElement = JSONnumber.create(result);
+                    }
+                }
+                case EXPECT_ITEM_OR_ARR_END -> {
+                    JSONelement unchecked_container = containerStack.getLast();
+                    if(!unchecked_container.isArray()){
+                        throw new AssertionError("We thought we would be inside an array at this point? Debugging needed.");
+                    }
+                    JSONarray container = (JSONarray) unchecked_container;
+                    if(check){
+                        container.add(JSONstring.create(unescape(text)));
+                        stateStack.addLast(State.EXPECT_COMMA_OR_ARR_END);
+                    } else if(text.equals("]")){
+                        containerStack.removeLast();
+                    } else if(text.equals("[")){
+                        JSONarray new_item = JSONarray.create();
+                        container.add(new_item);
+                        containerStack.addLast(new_item);
+                        stateStack.addLast(State.EXPECT_COMMA_OR_ARR_END);
+                        stateStack.addLast(State.EXPECT_ITEM_OR_ARR_END);
+                    } else if(text.equals("{")){
+                        JSONobject new_item = JSONobject.create();
+                        container.add(new_item);
+                        containerStack.addLast(new_item);
+                        stateStack.addLast(State.EXPECT_COMMA_OR_ARR_END);
+                        stateStack.addLast(State.EXPECT_KEY_OR_OBJ_END);
+                    } else if(text.equals("null")){
+                        container.add(JSONnull.create());
+                        stateStack.addLast(State.EXPECT_COMMA_OR_ARR_END);
+                    } else if(text.equals("true")){
+                        container.add(JSONbool.create(true));
+                        stateStack.addLast(State.EXPECT_COMMA_OR_ARR_END);
+                    } else if(text.equals("false")){
+                        container.add(JSONbool.create(false));
+                        stateStack.addLast(State.EXPECT_COMMA_OR_ARR_END);
+                    } else {
+                        double result = 0;
+                        try{
+                            result = Double.parseDouble(text);
+                        } catch(NumberFormatException e) {
+                            chunkException(chunks, i, expectationMessages.get(state));
+                        }
+                        container.add(JSONnumber.create(result));
+                        stateStack.addLast(State.EXPECT_COMMA_OR_ARR_END);
+                    }
+                }
+                case EXPECT_COMMA_OR_ARR_END -> {
+                    if(check){
+                        chunkException(chunks, i, expectationMessages.get(state));
+                    } else if(text.equals(",")){
+                        stateStack.addLast(State.EXPECT_COMMA_OR_ARR_END);
+                        stateStack.addLast(State.EXPECT_ARR_ITEM);
+                    } else if(text.equals("]")){
+                        containerStack.removeLast();
+                    } else {
+                        chunkException(chunks, i, expectationMessages.get(state));
+                    }
+                }
+                case EXPECT_ARR_ITEM -> {
+                    JSONelement unchecked_container = containerStack.getLast();
+                    if(!unchecked_container.isArray()){
+                        throw new AssertionError("We thought we would be inside an array at this point? Debugging needed.");
+                    }
+                    JSONarray container = (JSONarray) unchecked_container;
+                    if(check){
+                        container.add(JSONstring.create(unescape(text)));
+                    } else if(text.equals("[")){
+                        JSONarray new_item = JSONarray.create();
+                        container.add(new_item);
+                        containerStack.addLast(new_item);
+                        stateStack.addLast(State.EXPECT_ITEM_OR_ARR_END);
+                    } else if(text.equals("{")){
+                        JSONobject new_item = JSONobject.create();
+                        container.add(new_item);
+                        containerStack.addLast(new_item);
+                        stateStack.addLast(State.EXPECT_KEY_OR_OBJ_END);
+                    } else if(text.equals("null")){
+                        container.add(JSONnull.create());
+                    } else if(text.equals("true")){
+                        container.add(JSONbool.create(true));
+                    } else if(text.equals("false")){
+                        container.add(JSONbool.create(false));
+                    } else {
+                        double result = 0;
+                        try{
+                            result = Double.parseDouble(text);
+                        } catch(NumberFormatException e) {
+                            chunkException(chunks, i, expectationMessages.get(state));
+                        }
+                        container.add(JSONnumber.create(result));
+                    }
+                }
+                case EXPECT_KEY_OR_OBJ_END -> {
+                    JSONelement unchecked_container = containerStack.getLast();
+                    if(!unchecked_container.isObject()){
+                        throw new AssertionError("We thought we would be inside an object at this point? Debugging needed.");
+                    }
+                    JSONobject container = (JSONobject) unchecked_container;
+                    if(check){
+                        lastObjKey = unescape(text);
+                        stateStack.addLast(State.EXPECT_COMMA_OR_OBJ_END);
+                        stateStack.addLast(State.EXPECT_OBJ_VAL);
+                        stateStack.addLast(State.EXPECT_COLON);
+                        if(container.containsKey(lastObjKey)){
+                            chunkException(chunks, i, "The current object already contains the key \"" + lastObjKey + "\" and we cannot currently support duplicate object keys.");
+                        }
+                    } else if(text.equals("}")) {
+                        containerStack.removeLast();
+                    } else {
+                        chunkException(chunks, i, expectationMessages.get(state));
+                    }
+                }
+                case EXPECT_COLON -> {
+                    if(check || !text.equals(":")){
+                        chunkException(chunks, i, expectationMessages.get(state));
+                    }
+                }
+                case EXPECT_OBJ_VAL -> {
+                    JSONelement unchecked_container = containerStack.getLast();
+                    if(!unchecked_container.isObject()){
+                        throw new AssertionError("We thought we would be inside an object at this point? Debugging needed.");
+                    }
+                    JSONobject container = (JSONobject) unchecked_container;
+                    if(lastObjKey == null){
+                        throw new AssertionError("We were expecting that lastObjKey would be necessarily non-null here.");
+                    }
+                    if(check){
+                        container.put(lastObjKey, JSONstring.create(unescape(text)));
+                    } else if(text.equals("[")){
+                        JSONarray new_item = JSONarray.create();
+                        container.put(lastObjKey, new_item);
+                        containerStack.addLast(new_item);
+                        stateStack.addLast(State.EXPECT_ITEM_OR_ARR_END);
+                    } else if(text.equals("{")){
+                        JSONobject new_item = JSONobject.create();
+                        container.put(lastObjKey, new_item);
+                        containerStack.addLast(new_item);
+                        stateStack.addLast(State.EXPECT_KEY_OR_OBJ_END);
+                    } else if(text.equals("null")){
+                        container.put(lastObjKey, JSONnull.create());
+                    } else if(text.equals("true")){
+                        container.put(lastObjKey, JSONbool.create(true));
+                    } else if(text.equals("false")){
+                        container.put(lastObjKey, JSONbool.create(false));
+                    } else {
+                        double result = 0;
+                        try{
+                            result = Double.parseDouble(text);
+                        } catch(NumberFormatException e) {
+                            chunkException(chunks, i, expectationMessages.get(state));
+                        }
+                        container.put(lastObjKey, JSONnumber.create(result));
+                    }
+                    lastObjKey = null;
+                }
+                case EXPECT_COMMA_OR_OBJ_END -> {
+                    if(check){
+                        chunkException(chunks, i, expectationMessages.get(state));
+                    } else if(text.equals(",")){
+                        stateStack.addLast(State.EXPECT_COMMA_OR_OBJ_END);
+                        stateStack.addLast(State.EXPECT_OBJ_VAL);
+                        stateStack.addLast(State.EXPECT_COLON);
+                        stateStack.addLast(State.EXPECT_OBJ_KEY);
+                    } else if(text.equals("}")){
+                        containerStack.removeLast();
+                    } else {
+                        chunkException(chunks, i, expectationMessages.get(state));
+                    }
+                }
+                case EXPECT_OBJ_KEY -> {
+                    JSONelement unchecked_container = containerStack.getLast();
+                    if(!unchecked_container.isObject()){
+                        throw new AssertionError("We thought we would be inside an object at this point? Debugging needed.");
+                    }
+                    JSONobject container = (JSONobject) unchecked_container;
+                    if(check){
+                        lastObjKey = unescape(text);
+                        if(container.containsKey(lastObjKey)){
+                            chunkException(chunks, i, "The current object already contains the key \"" + lastObjKey + "\" and we cannot currently support duplicate object keys.");
+                        }
+                    } else {
+                        chunkException(chunks, i, expectationMessages.get(state));
+                    }
+                }
+            }
         }
-        return JSONobject.create(); //TODO
+        if(!stateStack.isEmpty()){
+            String reason = "The document appears to have ended earlier than expected. ";
+            String details = expectationMessages.get(stateStack.removeLast());
+            chunkEndingException(chunks, reason + details);
+        }
+        return globalElement;
     }
 
 }
