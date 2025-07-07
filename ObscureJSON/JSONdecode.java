@@ -84,6 +84,7 @@ public class JSONdecode {
     }
 
     private static void chunkException(List<TaggedString> chunks, int position, String reason) throws JSONstandardsException {
+        int longer_context = 2 * ERR_CONTEXT;
         ArrayList<Integer> partList = new ArrayList<>();
         int index = position - 1;
         while(partList.size() < ERR_CONTEXT){
@@ -100,19 +101,40 @@ public class JSONdecode {
         for(int c : partList) leftPart.appendCodePoint(c);
         String markerPadding = "-".repeat((int) leftPart.codePoints().count());
         String centerPart = reprint(chunks.get(position));
-        String marker = "^".repeat((int) centerPart.codePoints().count());
+        int centerGrowth = (int) centerPart.codePoints().count();
+        int rightPartLimit = Math.min(Math.max(0, longer_context-centerGrowth), ERR_CONTEXT);
+        if(rightPartLimit == 0){
+            StringBuilder centerTrim = new StringBuilder();
+            centerPart.codePoints().limit(longer_context).forEachOrdered(centerTrim::appendCodePoint);
+            if((centerGrowth > longer_context) || (position < chunks.size()-1)) centerTrim.append("...");
+            String marker = "^".repeat(longer_context);
+            StringBuilder result = new StringBuilder(reason);
+            String lineSep = System.lineSeparator();
+            result.append(lineSep);
+            result.append(lineSep);
+            result.append("      ");
+            result.append(leftPart);
+            result.append(centerTrim);
+            result.append(lineSep);
+            result.append("HERE: ");
+            result.append(markerPadding);
+            result.append(marker);
+            result.append(lineSep);
+            throw new JSONstandardsException(result.toString());
+        }
+        String marker = "^".repeat(centerGrowth);
         partList.clear();
         index = position + 1;
-        while(partList.size() < ERR_CONTEXT){
+        while(partList.size() < rightPartLimit){
             if(index >= chunks.size()) break;
             reprint(chunks.get(index)).codePoints().forEachOrdered(partList::add);
             index++;
         }
         int rightGrowth = partList.size();
-        while(partList.size() > ERR_CONTEXT) partList.removeLast();
+        while(partList.size() > rightPartLimit) partList.removeLast();
         StringBuilder rightPart = new StringBuilder();
         for(int c : partList) rightPart.appendCodePoint(c);
-        if((index < chunks.size()) || (rightGrowth > ERR_CONTEXT)) rightPart.append("...");
+        if((index < chunks.size()) || (rightGrowth > rightPartLimit)) rightPart.append("...");
         StringBuilder result = new StringBuilder(reason);
         String lineSep = System.lineSeparator();
         result.append(lineSep);
@@ -127,7 +149,6 @@ public class JSONdecode {
         result.append(marker);
         result.append(lineSep);
         throw new JSONstandardsException(result.toString());
-        //TODO: Fix the "really long centerPart" potential issue.
     }
 
     private static void chunkEndingException(List<TaggedString> chunks, String reason) throws JSONstandardsException {
