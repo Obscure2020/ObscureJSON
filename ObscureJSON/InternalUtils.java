@@ -45,13 +45,13 @@ final class InternalUtils {
 
     private static String escapeCodepoint(int codepoint){
         return switch(codepoint){
-            case 34 -> "\\\"";
-            case 92 -> "\\\\";
-            case 8 -> "\\b";
-            case 12 -> "\\f";
-            case 10 -> "\\n";
-            case 13 -> "\\r";
-            case 9 -> "\\t";
+            case '"' -> "\\\"";
+            case '\\' -> "\\\\";
+            case '\b' -> "\\b";
+            case '\f' -> "\\f";
+            case '\n' -> "\\n";
+            case '\r' -> "\\r";
+            case '\t' -> "\\t";
             default -> hexEscape(codepoint);
         };
     }
@@ -60,7 +60,7 @@ final class InternalUtils {
         StringBuilder sb = new StringBuilder();
         sb.append('"');
         text.codePoints().forEachOrdered(c -> {
-            if((c < 20) || (c > 126) || (c == 34) || (c == 92)){
+            if((c < ' ') || (c > '~') || (c == '"') || (c == '\\')){
                 sb.append(escapeCodepoint(c));
             } else {
                 sb.appendCodePoint(c);

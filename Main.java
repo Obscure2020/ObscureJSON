@@ -37,7 +37,7 @@ class Main {
     */
 
     public static void main(String[] args) throws Exception {
-        unclearMessages();
+        unescapedControlCharacters();
     }
 
     public static void circularReference() {
@@ -67,13 +67,13 @@ class Main {
         }
     }
 
-    public static void unescapedControlCharacters() throws Throwable {
+    public static void unescapedControlCharacters() throws Exception {
 		String json = "{ \"key\": \"val\nue\" }"; // unescaped newline
         JSONelement element = JSONdecode.document(json);
         System.out.println(element.prettyPrint());
     }
 
-    public static void illegalNumbers() throws Throwable {
+    public static void illegalNumbers() throws Exception {
         // because you use Double.parseDouble, and only special-case Infinity and NaN
         String json = """
                 {

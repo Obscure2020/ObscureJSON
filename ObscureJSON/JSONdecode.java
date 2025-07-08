@@ -15,21 +15,27 @@ public class JSONdecode {
         int limit = Math.max(position - ERR_CONTEXT, 0);
         for(int i=position-1; i>=limit; i--){
             int codepoint = document[i];
-            if((codepoint == '\n') || (codepoint == '\r')) break;
-            if(codepoint != '\t') leftPartList.add(codepoint);
+            if(codepoint < ' '){
+                leftPartList.add((int) ' ');
+            } else {
+                leftPartList.add(codepoint);
+            }
         }
         Collections.reverse(leftPartList);
         StringBuilder leftPart = new StringBuilder();
         if(limit != 0) leftPart.append("...");
         for(int c : leftPartList) leftPart.appendCodePoint(c);
         String markerPadding = "-".repeat((int) leftPart.codePoints().count());
-        String centerPart = Character.toString(document[position]);
+        String centerPart = (document[position] < ' ') ? " " : Character.toString(document[position]);
         limit = Math.min(position + ERR_CONTEXT, document.length - 1);
         StringBuilder rightPart = new StringBuilder();
         for(int i=position+1; i<=limit; i++){
             int codepoint = document[i];
-            if((codepoint == '\n') || (codepoint == '\r')) break;
-            if(codepoint != '\t') rightPart.appendCodePoint(codepoint);
+            if(codepoint < ' '){
+                rightPart.append(' ');
+            } else {
+                rightPart.appendCodePoint(codepoint);
+            }
         }
         if(limit != (document.length - 1)) rightPart.append("...");
         StringBuilder result = new StringBuilder(reason);
@@ -53,8 +59,11 @@ public class JSONdecode {
         int limit = Math.max(document.length - 1 - ERR_CONTEXT, 0);
         for(int i=document.length-1; i>=limit; i--){
             int codepoint = document[i];
-            if((codepoint == '\n') || (codepoint == '\r')) break;
-            if(codepoint != '\t') excerptList.add(codepoint);
+            if(codepoint < ' '){
+                excerptList.add((int) ' ');
+            } else {
+                excerptList.add(codepoint);
+            }
         }
         Collections.reverse(excerptList);
         StringBuilder excerpt = new StringBuilder();
@@ -199,7 +208,9 @@ public class JSONdecode {
             int c = chars[i];
             if(mode){
                 //Inside a String
-                if((c == 34) && (prev != 92)){
+                if(c < ' '){
+                    codepointPositionException(chars, i, "Illegal non-escaped ASCII control character inside a string.");
+                } else if((c == '"') && (prev != '\\')){
                     mode = false;
                     bareChunks.add(new TaggedString(sb.toString(), true));
                     sb.setLength(0);
@@ -208,9 +219,9 @@ public class JSONdecode {
                 }
             } else {
                 //Outside a String
-                if(c == 92){
+                if(c == '\\'){
                     codepointPositionException(chars, i, "Illegal usage of the escape character \"\\\" outside of a string.");
-                } else if(c == 34){
+                } else if(c == '"'){
                     mode = true;
                     bareChunks.add(new TaggedString(sb.toString(), false));
                     sb.setLength(0);
