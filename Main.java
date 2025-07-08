@@ -37,7 +37,7 @@ class Main {
     */
 
     public static void main(String[] args) throws Exception {
-        circularReference();
+        unclearMessages();
     }
 
     public static void circularReference() {

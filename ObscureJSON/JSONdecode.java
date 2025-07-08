@@ -89,6 +89,7 @@ public class JSONdecode {
         int index = position - 1;
         while(partList.size() < ERR_CONTEXT){
             if(index < 0) break;
+            partList.add((int) ' ');
             int[] codepoints = reprint(chunks.get(index)).codePoints().toArray();
             for(int i=codepoints.length-1; i>=0; i--) partList.add(codepoints[i]);
             index--;
@@ -127,6 +128,7 @@ public class JSONdecode {
         index = position + 1;
         while(partList.size() < rightPartLimit){
             if(index >= chunks.size()) break;
+            partList.add((int) ' ');
             reprint(chunks.get(index)).codePoints().forEachOrdered(partList::add);
             index++;
         }
@@ -308,7 +310,7 @@ public class JSONdecode {
         result.put(State.EXPECT_ITEM_OR_ARR_END, "We were expecting to see an array item or the end of the array here.");
         result.put(State.EXPECT_COMMA_OR_ARR_END, "We were expecting to see a comma or the end of the array here.");
         result.put(State.EXPECT_ARR_ITEM, "We were expecting to see an array item here.");
-        result.put(State.EXPECT_KEY_OR_OBJ_END, "We were expecting to see an object member key or the end of the object here.");
+        result.put(State.EXPECT_KEY_OR_OBJ_END, "We were expecting to see an object member key string or the end of the object here.");
         result.put(State.EXPECT_COLON, "We were expecting to see a colon here.");
         result.put(State.EXPECT_OBJ_VAL, "We were expecting to see an object member value here.");
         result.put(State.EXPECT_COMMA_OR_OBJ_END, "We were expecting to see a comma or the end of the object here.");
@@ -317,7 +319,7 @@ public class JSONdecode {
     }
 
     private static final EnumMap<State, String> expectationMessages = setupExpectationMessages();
-    private static final String cantTellWhat = "We can't tell what JSON type this is is supposed to be. What the heck is this??";
+    private static final String cantTellWhat = "We can't tell what JSON type this is is supposed to be.";
 
     public static JSONelement document(String d) throws JSONstandardsException {
         List<TaggedString> chunks = chunkify(d);
@@ -355,7 +357,7 @@ public class JSONdecode {
                         try{
                             result = Double.parseDouble(text);
                         } catch(NumberFormatException e) {
-                            chunkException(chunks, i, cantTellWhat);
+                            chunkException(chunks, i, cantTellWhat + " " + expectationMessages.get(state));
                         }
                         globalElement = JSONnumber.create(result);
                     }
@@ -397,7 +399,7 @@ public class JSONdecode {
                         try{
                             result = Double.parseDouble(text);
                         } catch(NumberFormatException e) {
-                            chunkException(chunks, i, expectationMessages.get(state));
+                            chunkException(chunks, i, cantTellWhat + " " + expectationMessages.get(state));
                         }
                         container.add(JSONnumber.create(result));
                         stateStack.addLast(State.EXPECT_COMMA_OR_ARR_END);
@@ -444,7 +446,7 @@ public class JSONdecode {
                         try{
                             result = Double.parseDouble(text);
                         } catch(NumberFormatException e) {
-                            chunkException(chunks, i, expectationMessages.get(state));
+                            chunkException(chunks, i, cantTellWhat + " " + expectationMessages.get(state));
                         }
                         container.add(JSONnumber.create(result));
                     }
@@ -506,7 +508,7 @@ public class JSONdecode {
                         try{
                             result = Double.parseDouble(text);
                         } catch(NumberFormatException e) {
-                            chunkException(chunks, i, expectationMessages.get(state));
+                            chunkException(chunks, i, cantTellWhat + " " + expectationMessages.get(state));
                         }
                         container.put(lastObjKey, JSONnumber.create(result));
                     }
