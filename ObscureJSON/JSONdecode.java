@@ -319,7 +319,7 @@ public class JSONdecode {
     }
 
     private static final EnumMap<State, String> expectationMessages = setupExpectationMessages();
-    private static final String cantTellWhat = "We can't tell what JSON type this is is supposed to be.";
+    private static final String cantTellWhat = "We can't tell what JSON type this is supposed to be.";
 
     public static JSONelement document(String d) throws JSONstandardsException {
         List<TaggedString> chunks = chunkify(d);
@@ -425,6 +425,13 @@ public class JSONdecode {
                     JSONarray container = (JSONarray) unchecked_container;
                     if(check){
                         container.add(JSONstring.create(unescape(text)));
+                    } else if(text.equals("]")){
+                        TaggedString prevChunk = chunks.get(i-1);
+                        boolean prevCheck = prevChunk.check;
+                        String prevText = prevChunk.text;
+                        if(!prevCheck && prevText.equals(",")){
+                            chunkException(chunks, i-1, "Illegal trailing comma in array.");
+                        }
                     } else if(text.equals("[")){
                         JSONarray new_item = JSONarray.create();
                         container.add(new_item);
@@ -540,6 +547,14 @@ public class JSONdecode {
                             chunkException(chunks, i, "The current object already contains the key \"" + lastObjKey + "\" and we cannot currently support duplicate object keys.");
                         }
                     } else {
+                        if(text.equals("}")){
+                            TaggedString prevChunk = chunks.get(i-1);
+                            boolean prevCheck = prevChunk.check;
+                            String prevText = prevChunk.text;
+                            if(!prevCheck && prevText.equals(",")){
+                                chunkException(chunks, i-1, "Illegal trailing comma in object.");
+                            }
+                        }
                         chunkException(chunks, i, expectationMessages.get(state));
                     }
                 }
