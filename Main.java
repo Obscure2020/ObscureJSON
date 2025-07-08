@@ -37,7 +37,7 @@ class Main {
     */
 
     public static void main(String[] args) throws Exception {
-        unescapedControlCharacters();
+        extraQuote();
     }
 
     public static void circularReference() {
@@ -71,6 +71,17 @@ class Main {
 		String json = "{ \"key\": \"val\nue\" }"; // unescaped newline
         JSONelement element = JSONdecode.document(json);
         System.out.println(element.prettyPrint());
+    }
+
+    public static void extraQuote() {
+        JSONobject o = JSONobject.create();
+        for (int i = 1; i <= 100; i++) {
+            o.put("key" + i, JSONstring.create("value" + Integer.hashCode(i)));
+        }
+
+        String json = new StringBuilder(o.condensedPrint()).insert(15, '"').toString();
+
+        JSONdecode.document(json);
     }
 
     public static void illegalNumbers() throws Exception {
