@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.EnumMap;
 import java.util.HexFormat;
 
 public class JSONdecode {
@@ -293,32 +292,23 @@ public class JSONdecode {
     }
 
     private enum State {
-        EXPECT_GLOBAL,
-        EXPECT_ITEM_OR_ARR_END,
-        EXPECT_COMMA_OR_ARR_END,
-        EXPECT_ARR_ITEM,
-        EXPECT_KEY_OR_OBJ_END,
-        EXPECT_COLON,
-        EXPECT_OBJ_VAL,
-        EXPECT_COMMA_OR_OBJ_END,
-        EXPECT_OBJ_KEY;
+        EXPECT_GLOBAL("We were expecting to see... anything... here."),
+        EXPECT_ITEM_OR_ARR_END("We were expecting to see an array item or the end of the array here."),
+        EXPECT_COMMA_OR_ARR_END("We were expecting to see a comma or the end of the array here."),
+        EXPECT_ARR_ITEM("We were expecting to see an array item here."),
+        EXPECT_KEY_OR_OBJ_END("We were expecting to see an object member key string or the end of the object here."),
+        EXPECT_COLON("We were expecting to see a colon here."),
+        EXPECT_OBJ_VAL("We were expecting to see an object member value here."),
+        EXPECT_COMMA_OR_OBJ_END("We were expecting to see a comma or the end of the object here."),
+        EXPECT_OBJ_KEY("We were expecting to see an object member key here.");
+
+        public final String description;
+
+        State(String description){
+            this.description = description;
+        }
     }
 
-    private static EnumMap<State, String> setupExpectationMessages(){
-        EnumMap<State, String> result = new EnumMap<>(State.class);
-        result.put(State.EXPECT_GLOBAL, "We were expecting to see... anything... here.");
-        result.put(State.EXPECT_ITEM_OR_ARR_END, "We were expecting to see an array item or the end of the array here.");
-        result.put(State.EXPECT_COMMA_OR_ARR_END, "We were expecting to see a comma or the end of the array here.");
-        result.put(State.EXPECT_ARR_ITEM, "We were expecting to see an array item here.");
-        result.put(State.EXPECT_KEY_OR_OBJ_END, "We were expecting to see an object member key string or the end of the object here.");
-        result.put(State.EXPECT_COLON, "We were expecting to see a colon here.");
-        result.put(State.EXPECT_OBJ_VAL, "We were expecting to see an object member value here.");
-        result.put(State.EXPECT_COMMA_OR_OBJ_END, "We were expecting to see a comma or the end of the object here.");
-        result.put(State.EXPECT_OBJ_KEY, "We were expecting to see an object member key here.");
-        return result;
-    }
-
-    private static final EnumMap<State, String> expectationMessages = setupExpectationMessages();
     private static final String cantTellWhat = "We can't tell what JSON type this is supposed to be.";
 
     public static JSONelement document(String d) throws JSONstandardsException {
@@ -357,7 +347,7 @@ public class JSONdecode {
                         try{
                             result = Double.parseDouble(text);
                         } catch(NumberFormatException e) {
-                            chunkException(chunks, i, cantTellWhat + " " + expectationMessages.get(state));
+                            chunkException(chunks, i, cantTellWhat + " " + state.description);
                         }
                         globalElement = JSONnumber.create(result);
                     }
@@ -399,7 +389,7 @@ public class JSONdecode {
                         try{
                             result = Double.parseDouble(text);
                         } catch(NumberFormatException e) {
-                            chunkException(chunks, i, cantTellWhat + " " + expectationMessages.get(state));
+                            chunkException(chunks, i, cantTellWhat + " " + state.description);
                         }
                         container.add(JSONnumber.create(result));
                         stateStack.addLast(State.EXPECT_COMMA_OR_ARR_END);
@@ -407,14 +397,14 @@ public class JSONdecode {
                 }
                 case EXPECT_COMMA_OR_ARR_END -> {
                     if(check){
-                        chunkException(chunks, i, expectationMessages.get(state));
+                        chunkException(chunks, i, state.description);
                     } else if(text.equals(",")){
                         stateStack.addLast(State.EXPECT_COMMA_OR_ARR_END);
                         stateStack.addLast(State.EXPECT_ARR_ITEM);
                     } else if(text.equals("]")){
                         containerStack.removeLast();
                     } else {
-                        chunkException(chunks, i, expectationMessages.get(state));
+                        chunkException(chunks, i, state.description);
                     }
                 }
                 case EXPECT_ARR_ITEM -> {
@@ -453,7 +443,7 @@ public class JSONdecode {
                         try{
                             result = Double.parseDouble(text);
                         } catch(NumberFormatException e) {
-                            chunkException(chunks, i, cantTellWhat + " " + expectationMessages.get(state));
+                            chunkException(chunks, i, cantTellWhat + " " + state.description);
                         }
                         container.add(JSONnumber.create(result));
                     }
@@ -475,12 +465,12 @@ public class JSONdecode {
                     } else if(text.equals("}")) {
                         containerStack.removeLast();
                     } else {
-                        chunkException(chunks, i, expectationMessages.get(state));
+                        chunkException(chunks, i, state.description);
                     }
                 }
                 case EXPECT_COLON -> {
                     if(check || !text.equals(":")){
-                        chunkException(chunks, i, expectationMessages.get(state));
+                        chunkException(chunks, i, state.description);
                     }
                 }
                 case EXPECT_OBJ_VAL -> {
@@ -515,7 +505,7 @@ public class JSONdecode {
                         try{
                             result = Double.parseDouble(text);
                         } catch(NumberFormatException e) {
-                            chunkException(chunks, i, cantTellWhat + " " + expectationMessages.get(state));
+                            chunkException(chunks, i, cantTellWhat + " " + state.description);
                         }
                         container.put(lastObjKey, JSONnumber.create(result));
                     }
@@ -523,7 +513,7 @@ public class JSONdecode {
                 }
                 case EXPECT_COMMA_OR_OBJ_END -> {
                     if(check){
-                        chunkException(chunks, i, expectationMessages.get(state));
+                        chunkException(chunks, i, state.description);
                     } else if(text.equals(",")){
                         stateStack.addLast(State.EXPECT_COMMA_OR_OBJ_END);
                         stateStack.addLast(State.EXPECT_OBJ_VAL);
@@ -532,7 +522,7 @@ public class JSONdecode {
                     } else if(text.equals("}")){
                         containerStack.removeLast();
                     } else {
-                        chunkException(chunks, i, expectationMessages.get(state));
+                        chunkException(chunks, i, state.description);
                     }
                 }
                 case EXPECT_OBJ_KEY -> {
@@ -555,14 +545,14 @@ public class JSONdecode {
                                 chunkException(chunks, i-1, "Illegal trailing comma in object.");
                             }
                         }
-                        chunkException(chunks, i, expectationMessages.get(state));
+                        chunkException(chunks, i, state.description);
                     }
                 }
             }
         }
         if(!stateStack.isEmpty()){
             String reason = "The document appears to have ended earlier than expected. ";
-            String details = expectationMessages.get(stateStack.removeLast());
+            String details = stateStack.removeLast().description;
             chunkEndingException(chunks, reason + details);
         }
         return globalElement;
