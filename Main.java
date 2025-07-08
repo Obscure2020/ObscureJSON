@@ -84,6 +84,17 @@ class Main {
         JSONdecode.document(json);
     }
 
+    public static void extraQuote2() {
+        JSONobject o = JSONobject.create();
+        for (int i = 1; i <= 100; i++) {
+            o.put("key" + i, JSONstring.create(("value" + i).repeat(10)));
+        }
+
+        String json = new StringBuilder(o.prettyPrint()).insert(950, '"').append('"').toString();
+
+        JSONdecode.document(json);
+    }
+
     public static void illegalNumbers() throws Exception {
         // because you use Double.parseDouble, and only special-case Infinity and NaN
         String json = """

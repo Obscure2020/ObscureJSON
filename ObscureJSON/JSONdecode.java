@@ -10,7 +10,7 @@ public class JSONdecode {
 
     private static final int ERR_CONTEXT = 40;
 
-    private static void codepointPositionException(int[] document, int position, String reason) throws JSONstandardsException {
+    private static String codepointPositionExceptionDemonstration(int[] document, int position, String reason){
         ArrayList<Integer> leftPartList = new ArrayList<>();
         int limit = Math.max(position - ERR_CONTEXT, 0);
         for(int i=position-1; i>=limit; i--){
@@ -51,10 +51,10 @@ public class JSONdecode {
         result.append(markerPadding);
         result.append('^');
         result.append(lineSep);
-        throw new JSONstandardsException(result.toString());
+        return result.toString();
     }
 
-    private static void codepointEndingException(int[] document, String reason) throws JSONstandardsException {
+    private static String codepointEndingExceptionDeomonstration(int[] document, String reason){
         ArrayList<Integer> excerptList = new ArrayList<>();
         int limit = Math.max(document.length - 1 - ERR_CONTEXT, 0);
         for(int i=document.length-1; i>=limit; i--){
@@ -81,6 +81,36 @@ public class JSONdecode {
         result.append(markerPadding);
         result.append('^');
         result.append(lineSep);
+        return result.toString();
+    }
+
+    private static void codepointPositionException(int[] document, int position, String reason) throws JSONstandardsException {
+        throw new JSONstandardsException(codepointPositionExceptionDemonstration(document, position, reason));
+    }
+
+    private static void codepointEndingException(int[] document, String reason) throws JSONstandardsException {
+        throw new JSONstandardsException(codepointEndingExceptionDeomonstration(document, reason));
+    }
+
+    private static void codepointPositionExceptionMulti(int[] document, int[] positions, String[] reasons) throws JSONstandardsException {
+        if(positions.length != reasons.length){
+            throw new AssertionError("Positions array and Reasons array must be of equal length.");
+        }
+        StringBuilder result = new StringBuilder();
+        String lineSep = System.lineSeparator();
+        for(int i=0; i<positions.length; i++){
+            int position = positions[i];
+            String reason = reasons[i];
+            if(position > document.length){
+                throw new AssertionError("Index too large.");
+            }
+            if(i>0) result.append(lineSep);
+            if(position == document.length){
+                result.append(codepointEndingExceptionDeomonstration(document, reason));
+            } else {
+                result.append(codepointPositionExceptionDemonstration(document, position, reason));
+            }
+        }
         throw new JSONstandardsException(result.toString());
     }
 
@@ -204,14 +234,21 @@ public class JSONdecode {
         boolean mode = false;
         StringBuilder sb = new StringBuilder();
         int prev = -1;
+        int lastModeSwitch = -1;
         for(int i=0; i<chars.length; i++){
             int c = chars[i];
             if(mode){
                 //Inside a String
                 if(c < ' '){
+                    if(lastModeSwitch >= 0){
+                        int[] positions = {i, lastModeSwitch};
+                        String[] reasons = {"Illegal non-escaped ASCII control character inside a string.", "We thought we were inside a string that began here:"};
+                        codepointPositionExceptionMulti(chars, positions, reasons);
+                    }
                     codepointPositionException(chars, i, "Illegal non-escaped ASCII control character inside a string.");
                 } else if((c == '"') && (prev != '\\')){
                     mode = false;
+                    lastModeSwitch = i;
                     bareChunks.add(new TaggedString(sb.toString(), true));
                     sb.setLength(0);
                 } else {
@@ -220,9 +257,15 @@ public class JSONdecode {
             } else {
                 //Outside a String
                 if(c == '\\'){
+                    if(lastModeSwitch >= 0){
+                        int[] positions = {i, lastModeSwitch};
+                        String[] reasons = {"Illegal usage of the escape character \"\\\" outside of a string.", "We thought the last string ended here:"};
+                        codepointPositionExceptionMulti(chars, positions, reasons);
+                    }
                     codepointPositionException(chars, i, "Illegal usage of the escape character \"\\\" outside of a string.");
                 } else if(c == '"'){
                     mode = true;
+                    lastModeSwitch = i;
                     bareChunks.add(new TaggedString(sb.toString(), false));
                     sb.setLength(0);
                 } else {
@@ -231,7 +274,14 @@ public class JSONdecode {
             }
             prev = c;
         }
-        if(mode) codepointEndingException(chars, "Document ended while still inside a yet-to-terminate string.");
+        if(mode){
+            if(lastModeSwitch >= 0){
+                int[] positions = {chars.length, lastModeSwitch};
+                String[] reasons = {"Document ended while still inside a yet-to-terminate string.", "We thought we were inside a string that began here:"};
+                codepointPositionExceptionMulti(chars, positions, reasons);
+            }
+            codepointEndingException(chars, "Document ended while still inside a yet-to-terminate string.");
+        }
         bareChunks.add(new TaggedString(sb.toString(), mode));
         ArrayList<TaggedString> processedChunks = new ArrayList<>(bareChunks.size());
         for(TaggedString item : bareChunks){
