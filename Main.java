@@ -23,6 +23,7 @@ class Main {
         for(String l : lines) System.out.println(l);
     }
 
+    /*
     public static void main(String[] args) throws Exception {
         String document = readWholeFile(Paths.get("TestData/Sample005.txt"));
         JSONelement elem = JSONdecode.document(document);
@@ -32,5 +33,80 @@ class Main {
             System.exit(1);
         }
         properPrint(elem.prettyPrint());
+    }
+    */
+
+    public static void main(String[] args) throws Exception {
+        circularReference();
+    }
+
+    public static void circularReference() {
+        JSONobject o1 = JSONobject.create();
+        JSONobject o2 = JSONobject.create();
+        o1.put("key", o2);
+        o2.put("key", o1);
+
+        o1.prettyPrint(); // makes ugly StackOverflowError
+    }
+
+    public static void unclearMessages() {
+		String[] tests = {
+                "{ \"key\": [1 234 5] }", // whitespace gets removed, so it looks like valid JSON in the error message
+                "{ \"key\": value }", // JSONdecode.cantTellWhat is only used in one place, but not the other two where Double.parseDouble is used
+                "{ key: \"value\" }", // unquoted keys are pretty easy to spot, a separate error message would be nice
+                "{ \"key\": \"value\", }", "{ \"key\": [\"value\",] }", // likewise with trailing commas
+                "\u00A0" // non-breaking space, gives funny message
+        };
+
+        for (String test : tests) {
+            try {
+                JSONdecode.document(test);
+            } catch (Exception e) {
+                System.out.println(e.getMessage() + "\n");
+            }
+        }
+    }
+
+    public static void unescapedControlCharacters() throws Throwable {
+		String json = "{ \"key\": \"val\nue\" }"; // unescaped newline
+        JSONelement element = JSONdecode.document(json);
+        System.out.println(element.prettyPrint());
+    }
+
+    public static void illegalNumbers() throws Throwable {
+        // because you use Double.parseDouble, and only special-case Infinity and NaN
+        String json = """
+                {
+                  "leadingZero": 0123,
+                  "trailingD": 1.2d,
+                  "trailingF": 1.2f,
+                  "leadingPlus": +123,
+                  "leadingDot": .123,
+                  "trailingDot": [123., 1.e3],
+                  "hex": [0x1.0p0, 0X.8P+2, 0x1.fffffep127]
+                }
+                """;
+
+        System.out.println(JSONdecode.document(json).prettyPrint());
+    }
+
+    public static void unicodeHandling() {
+        // invalid surrogate pairs should be rejected
+        String[] unicodeTests = {
+                "{\"brokenHighSurrogate\": \"\\uD800\"}", // Lone high surrogate
+                "{\"brokenLowSurrogate\": \"\\uDC00\"}", // Lone low surrogate
+                "{\"reversedSurrogatePair\": \"\\uDC00\\uD800\"}" // Reversed pair
+        };
+
+        for (String test : unicodeTests) {
+            try {
+                JSONobject o = (JSONobject) JSONdecode.document(test);
+                System.out.println("Accepted invalid Unicode: " + test);
+                JSONstring str = (JSONstring) o.values().iterator().next();
+                System.out.println("String value: " + str.getValue());
+            } catch (Exception e) {
+                System.out.println("Rejected: " + test);
+            }
+        }
     }
 }
