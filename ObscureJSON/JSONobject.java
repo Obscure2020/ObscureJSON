@@ -114,11 +114,19 @@ public final class JSONobject implements JSONelement, Map<String, JSONelement> {
         return contents.keySet();
     }
 
-    public JSONelement put(String key, JSONelement value){
+    public JSONelement put(String key, JSONelement value) throws JSONstandardsException {
+        if(InternalUtils.wouldCircular(this, value)){
+            throw new JSONstandardsException(InternalUtils.CIRC_OBJECTION);
+        }
         return contents.put(key, value);
     }
 
     public void putAll(Map<? extends String, ? extends JSONelement> m){
+        for(JSONelement elem : m.values()){
+            if(InternalUtils.wouldCircular(this, elem)){
+                throw new JSONstandardsException(InternalUtils.CIRC_OBJECTION);
+            }
+        }
         contents.putAll(m);
     }
 

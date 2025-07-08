@@ -1,6 +1,6 @@
 package ObscureJSON;
 
-public class JSONstandardsException extends Exception {
+public class JSONstandardsException extends RuntimeException {
 
     public JSONstandardsException(String errorMessage){
         super(errorMessage);

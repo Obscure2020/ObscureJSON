@@ -1,5 +1,6 @@
 package ObscureJSON;
 
+import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.HexFormat;
 
@@ -68,5 +69,29 @@ final class InternalUtils {
         sb.append('"');
         return sb.toString();
     }
+
+    public static boolean wouldCircular(JSONelement parent, JSONelement child){
+        if(!(child.isObject() || child.isArray())) return false;
+        ArrayDeque<JSONelement> queue = new ArrayDeque<>();
+        queue.addLast(child);
+        while(!queue.isEmpty()){
+            JSONelement elem = queue.removeFirst();
+            if(elem == parent) return true;
+            if(elem.isObject()){
+                JSONobject obj_elem = (JSONobject) elem;
+                for(JSONelement deep : obj_elem.values()){
+                    if(deep.isObject() || deep.isArray()) queue.addLast(deep);
+                }
+            } else {
+                JSONarray arr_elem = (JSONarray) elem;
+                for(JSONelement deep : arr_elem){
+                    if(deep.isObject() || deep.isArray()) queue.addLast(deep);
+                }
+            }
+        }
+        return false;
+    }
+
+    public static final String CIRC_OBJECTION = "Cyclic inclusions are not allowed.";
 
 }

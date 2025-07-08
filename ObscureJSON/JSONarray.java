@@ -2,6 +2,7 @@ package ObscureJSON;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
@@ -110,18 +111,34 @@ public final class JSONarray implements JSONelement, List<JSONelement> {
     //The methods below all go toward implementing List<JSONelement>.
 
     public void add(int index, JSONelement element){
+        if(InternalUtils.wouldCircular(this, element)){
+            throw new JSONstandardsException(InternalUtils.CIRC_OBJECTION);
+        }
         contents.add(index, element);
     }
 
     public boolean add(JSONelement e){
+        if(InternalUtils.wouldCircular(this, e)){
+            throw new JSONstandardsException(InternalUtils.CIRC_OBJECTION);
+        }
         return contents.add(e);
     }
 
     public boolean addAll(int index, Collection<? extends JSONelement> c){
+        for(JSONelement elem : c){
+            if(InternalUtils.wouldCircular(this, elem)){
+                throw new JSONstandardsException(InternalUtils.CIRC_OBJECTION);
+            }
+        }
         return contents.addAll(index, c);
     }
 
     public boolean addAll(Collection<? extends JSONelement> c){
+        for(JSONelement elem : c){
+            if(InternalUtils.wouldCircular(this, elem)){
+                throw new JSONstandardsException(InternalUtils.CIRC_OBJECTION);
+            }
+        }
         return contents.addAll(c);
     }
 
@@ -150,7 +167,7 @@ public final class JSONarray implements JSONelement, List<JSONelement> {
     }
 
     public Iterator<JSONelement> iterator(){
-        return contents.iterator();
+        return Collections.unmodifiableList(contents).iterator();
     }
 
     public int lastIndexOf(Object o){
@@ -158,11 +175,11 @@ public final class JSONarray implements JSONelement, List<JSONelement> {
     }
 
     public ListIterator<JSONelement> listIterator(){
-        return contents.listIterator();
+        return Collections.unmodifiableList(contents).listIterator();
     }
 
     public ListIterator<JSONelement> listIterator(int index){
-        return contents.listIterator(index);
+        return Collections.unmodifiableList(contents).listIterator(index);
     }
 
     public JSONelement remove(int index){
@@ -182,6 +199,9 @@ public final class JSONarray implements JSONelement, List<JSONelement> {
     }
 
     public JSONelement set(int index, JSONelement element){
+        if(InternalUtils.wouldCircular(this, element)){
+            throw new JSONstandardsException(InternalUtils.CIRC_OBJECTION);
+        }
         return contents.set(index, element);
     }
 
